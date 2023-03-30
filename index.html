@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>JavaScript Calendar: Zoom</title>
+
+  <style type="text/css">
+    p, body, td, input, select, button { font-family: -apple-system,system-ui,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif; font-size: 14px; }
+    body { padding: 0px; margin: 0px; background-color: #ffffff; }
+    a { color: #1155a3; }
+    .space { margin: 10px 0px 10px 0px; }
+    .header { background: #003267; background: linear-gradient(to right, #011329 0%,#00639e 44%,#011329 100%); padding:20px 10px; color: white; box-shadow: 0px 0px 10px 5px rgba(0,0,0,0.75); }
+    .header a { color: white; }
+    .header h1 a { text-decoration: none; }
+    .header h1 { padding: 0px; margin: 0px; }
+    .main { padding: 10px; margin-top: 10px; }
+    .generated { color: #999; margin-top: 10px; }
+    .generated a { color: #999; }
+  </style>
+
+  <style>
+    .calendar-toolbar {
+      margin: 10px 0px;
+      display: flex;
+      align-items: center;
+    }
+
+    .calendar-toolbar button {
+      width: 25px;
+      height: 25px;
+
+      background-color: #3c78d8;
+      color: white;
+      border: 0;
+      cursor: pointer;
+    }
+    .controls button:focus {
+      outline: none;
+    }
+  </style>
+
+  <style>
+    body .calendar_default_event_inner {
+      background: #93c47d;
+      color: #ffffff;
+      border-radius: 10px;
+      border-color: #367c5a;
+    }
+  </style>
+
+  <style>
+    .zoom100 .calendar_default_colheader_inner {font-size: 13px;}
+    .zoom100 .calendar_default_rowheader_inner {font-size: 21px;}
+    .zoom100 .calendar_default_event_inner {font-size: 13px;}
+
+    .zoom115 .calendar_default_colheader_inner {font-size: 15px;}
+    .zoom115 .calendar_default_rowheader_inner div {font-size: 24px;}
+    .zoom115 .calendar_default_event_inner {font-size: 15px;}
+
+    .zoom130 .calendar_default_colheader_inner {font-size: 17px;}
+    .zoom130 .calendar_default_rowheader_inner {font-size: 28px;}
+    .zoom130 .calendar_default_event_inner {font-size: 17px;}
+  </style>
+
+
+  <!-- DayPilot library -->
+  <script src="js/daypilot/daypilot-all.min.js"></script>
+
+</head>
+<body>
+<div class="header">
+  <h1><a href='https://code.daypilot.org/35160/javascript-calendar-zoom'>JavaScript Calendar: Zoom</a></h1>
+  <div><a href="https://javascript.daypilot.org/">DayPilot for JavaScript</a> - HTML5 Calendar/Scheduling Components for JavaScript/Angular/React/Vue</div>
+</div>
+
+<div class="main">
+  <div class="calendar-toolbar">
+    Magnification:
+    &nbsp;
+    <button id="minus">-</button>
+    <input type="range" min="0" max="2" step="1" id="zoomLevel" value="0"/>
+    <button id="plus">+</button>
+    &nbsp;
+    <span id="label"></span>
+  </div>
+
+  <div id="dp"></div>
+  <div class="generated">Generated using <a href="https://builder.daypilot.org/">DayPilot UI Builder</a>.</div>
+</div>
+
+<script>
+  const dp = new DayPilot.Calendar("dp", {
+    viewType: "Week",
+    cellHeight: 30,
+    timeRangeSelectedHandling: "Enabled",
+    durationBarVisible: false,
+    onTimeRangeSelected: async (args) => {
+      const modal = await DayPilot.Modal.prompt("Create a new event:", "Event 1");
+      const dp = args.control;
+      dp.clearSelection();
+      if (modal.canceled) { return; }
+      dp.events.add({
+        start: args.start,
+        end: args.end,
+        id: DayPilot.guid(),
+        text: modal.result
+      });
+    },
+    eventDeleteHandling: "Disabled",
+    eventMoveHandling: "Update",
+    onEventMoved: (args) => {
+      args.control.message("Event moved: " + args.e.text());
+    },
+    eventResizeHandling: "Update",
+    onEventResized: (args) => {
+      args.control.message("Event resized: " + args.e.text());
+    },
+    eventClickHandling: "Disabled",
+    eventHoverHandling: "Disabled",
+    zoomLevels: [
+      {
+        name: "100%",
+        properties: {
+          cellHeight: 20,
+          headerHeight: 30,
+          cssClass: "zoom100"
+        },
+
+      },
+      {
+        name: "115%",
+        properties:
+          {
+            cellHeight: 23,
+            headerHeight: 35,
+            cssClass: "zoom115"
+          }
+      },
+      {
+        name: "130%",
+        properties :{
+          cellHeight: 26,
+          headerHeight: 40,
+          cssClass: "zoom130"
+        }
+      },
+    ]
+  });
+  dp.events.list = [
+    {
+      id: "1",
+      start: DayPilot.Date.today().addHours(10),
+      end: DayPilot.Date.today().addHours(12),
+      text: "Event 1"
+    }
+  ];
+  dp.init();
+
+  const app = {
+    elements: {
+      zoomLevel: document.querySelector("#zoomLevel"),
+      buttonMinus: document.querySelector("#minus"),
+      buttonPlus: document.querySelector("#plus"),
+      label: document.querySelector("#label")
+    },
+    init() {
+      app.elements.zoomLevel.addEventListener("input", function(ev) {
+        var level = parseInt(this.value);
+        app.applyLevel(level);
+      });
+
+      app.elements.buttonMinus.addEventListener("click", function () {
+        const currentValue = parseInt(app.elements.zoomLevel.value);
+        if (currentValue > 0) {
+          const newValue = currentValue - 1;
+          app.elements.zoomLevel.value = newValue;
+          dp.zoom.setActive(newValue);
+        }
+      });
+
+      app.elements.buttonPlus.addEventListener("click", function () {
+        const currentValue = parseInt(app.elements.zoomLevel.value);
+        if (currentValue < dp.zoomLevels.length - 1) {
+          const newValue = currentValue + 1;
+          app.elements.zoomLevel.value = newValue;
+          dp.zoom.setActive(newValue);
+        }
+      });
+
+      this.applyLevel(0);
+    },
+    applyLevel(level) {
+      app.elements.label.innerText = dp.zoomLevels[level].name;
+      dp.zoom.setActive(level);
+    }
+  };
+  app.init();
+
+</script>
+
+</body>
+</html>
